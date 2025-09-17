@@ -1,0 +1,359 @@
+El proyecto de centro de investigacion de araña.
+Un equipo de biólogos desea elaborar una aplicación para llevar el seguimiento de las especies de
+arañas que estudian en diferentes regiones. Estos estudios se realizan desde centros de investigación
+que se encuentran en distintos países.
+Cada centro de investigación cuenta con un código único, un nombre, una dirección, un teléfono de
+contacto y un director responsable (código, nombre completo y DNI). El centro se ubica en una
+ciudad, que a su vez pertenece a un país (ambos también codificados).
+Desde cada centro se estudian múltiples especies de arañas, de las cuales se desea almacenar: un
+código, su nombre científico, el nombre común, su familia, el tipo de hábitat donde suelen
+encontrarse, y su nivel de peligrosidad (bajo, medio, alto).
+Además, por cada especie estudiada se registran varias observaciones de campo, donde se consigna:
+la fecha de observación, la cantidad de ejemplares avistados, una descripción del comportamiento
+observado, y la inversión económica estimada dedicada a esa campaña de observación. Cada
+observación corresponde a una sola especie, y se realiza desde un único centro de investigación.
+
+La estructura de los archivos es la sigiente:
+includes/database.inc.php
+models/arana-model.inc.php
+      /centro-investigacion-model.inc.php
+autoload.php
+config.php
+index.php
+
+database.inc.php:
+<?php
+
+
+/**
+ * Clase: DataBase
+ * Descripción:
+ * Esta clase permite manejar el acceso a datos
+ */
+
+class DataBase {
+    private $objDB;
+    private $conexionOK;
+    private $errorMessage;
+
+    /**
+     * getEstadoConexion
+     * Indica si la conexión fue satisfactoria o no.
+     * @return bool true: conexión satisfactoria | false: Ocurrió un fallo.
+     */
+    public function getEstadoConexion() {
+        return $this->conexionOK;
+    }
+
+    /**
+     * getMensajeError
+     * Obtiene el mensaje de error en caso de un fallo.
+     * @return string
+     */
+    public function getMensajeError() {
+        return $this->errorMessage;
+    }
+    /**
+    *__construct
+    *Constructor de clase
+    *@return void
+    */
+
+    function __construct() {
+        $this->objDB = new mysqli(HOST,USER,PASSWORD,DATABASE);
+        if ($this->objDB->connect_errno) { // Devuelve el mensaje de error en texto
+            $this->errorMessage = "Error de conexión ("
+                . $this->objDB->connect_errno . ") "
+                . $this->objDB->connect_error;
+                $this->conexionOK = false;
+        } else {
+            //Indico que la conexión es correcta y establezco el
+            //juego de caracteres a utf8.
+            $this->conexionOK = true;
+            $this->objDB->set_charset("utf8");
+
+        }
+    }
+
+    /**
+     * getQuery
+     * Ejecuta una consulta SQL.
+     * @param string $xsql Sentencia SQL
+     * @return array Array asociativo con el conjunto de resultados.
+     */
+
+    public function getQuery($xsql) {
+        $this->objDB->real_query($xsql);
+        $resultado = $this->objDB->use_result();
+        return $resultado->fetch_all(MYSQLI_ASSOC);
+    }
+    
+    /**
+     * execute
+     * Permite ejecutar una sentencia sql.
+     * @param string $xsql
+     * @return bool true: Ejecución correcta | false: error al ejecutar
+     */
+    public function execute($xsql) {
+        if (!$this->objDB->query($xsql)) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    /**
+     * close
+     * Cierra la conexión establecida con la base de datos
+     * @return void
+     */
+    public function close() {
+        $this->objDB->close();
+    }
+
+}
+
+
+?>
+
+arana-model.inc.php:
+<?php
+
+class AranaModel {
+
+    /**
+     * get
+     * Permite obtener todos los registros
+     * de la tabla arana
+     * @param string $xfilter Parámetro opcional 
+     * que define el filtro a aplicar
+     * @return array
+     */
+
+    public function get($xfilter = "") {
+        $aFilter = json_decode($xfilter,true);
+        $aResponse = [];
+        $sql = "SELECT * FROM especie_arana";
+
+        if (strcmp($aFilter["filter"], "") != 0)
+            $sql .= " WHERE " . $aFilter["filter"] . " ";
+
+        $sql .= " ORDER BY id_especie ASC";
+
+        $objDB = new DataBase();
+
+        if (!$objDB->getEstadoConexion()) {
+            $aResponse["estado"] = "ERROR";
+            $aResponse["mensaje"] = $objDB->getMensajeError();
+            return $aResponse;
+        }
+
+        $aResponse["estado"] = "success";
+        $aResponse["mensaje"] = "Araña encontrada con exito";
+        $aResponse["datos"] = $objDB->getQuery($sql);
+
+        $objDB->close();
+        return $aResponse;
+
+    }
+
+    
+    /**
+     * insert
+     * Permite insertar un registro en la tabla arana
+     * @param string $aDatos Array asociativo con los datos a insertar
+     * @return array Resultado de la ejecución
+     */
+
+    public function insert($xdatos) {
+        $aDatos = json_decode($xdatos, true);
+        $aResponse = [];
+
+        if ($aDatos === null) {
+            return [
+                "estado" => "Error",
+                "mensaje" => "JSON invalido. Revisa el cuerpo de la peticion."
+            ];
+        }           
+
+        $sql = "INSERT INTO especie_arana(
+		            nombre_cientifico, 
+                    nombre_comun,
+                    familia,
+                    habitat,
+                    peligrosidad)
+	            VALUES(
+		            '" . $aDatos['nombre_cientifico'] ."',
+                    '" . $aDatos['nombre_comun'] ."',
+                    '" . $aDatos['familia'] ."',
+                    '" . $aDatos['habitat'] ."',
+                    '" . $aDatos['peligrosidad'] ."'
+                    )";
+        //var_dump($sql);
+        $objDB = new DataBase();
+
+        if (!$objDB->getEstadoConexion() ) {
+            $aResponse["estado"] = "Error";
+            $aResponse["mensaje"] = $objDB->getMensajeError();
+            return $aResponse;
+        }
+
+        $aResponse["estado"] = "success";
+        $aResponse["mensaje"] = "La especie de araña se dio de alta satisfactoriamente";
+        $aResponse["datos"] = $objDB->execute($sql);
+        
+        $objDB->close();
+        return $aResponse;
+    }
+
+    /**
+     * update
+     * Permite actualizar un registro de la tabla arana.
+     * @param array $aDatos
+     * @return array
+     */
+    public function update($xdatos) {
+        $aDatos = json_decode($xdatos, true);
+        $aResponse = [];
+        $sql = "UPDATE
+                    especie_arana
+                SET
+                    nombre_cientifico = '" . $aDatos["nombre_cientifico"] . "',
+                    nombre_comun = '" . $aDatos["nombre_comun"] . "',
+                    familia = '" .$aDatos["familia"] ."',
+                    habitat = '" .$aDatos["habitat"] ."',
+                    peligrosidad = '" .$aDatos["peligrosidad"] ."'
+                WHERE
+                    especie_arana.id_especie = ". $aDatos["id_especie"];
+        
+      
+        $objDB = new DataBase();
+
+        if (!$objDB->getEstadoConexion() ) {
+            $aResponse["estado"] = "Error";
+            $aResponse["mensaje"] = $objDB->getMensajeError();
+            return $aResponse;
+        }
+
+        $aResponse["estado"] = "success";
+        $aResponse["mensaje"] = "La especie de araña se actualizo satisfactoriamente";
+        $aResponse["datos"] = $objDB->execute($sql);
+        $objDB->close();
+        return $aResponse;
+
+    }
+
+    public function delete($xdatos) {
+        $aDatos = json_decode($xdatos, true);
+        $aResponse = [];
+
+        $sql = "CALL delete_especie_arana('" . $aDatos['nombre_cientifico'] . "')";
+
+        $objDB = new DataBase();
+
+        if (!$objDB->getEstadoConexion() ) {
+            $aResponse["estado"] = "Error";
+            $aResponse["mensaje"] = $objDB->getMensajeError();
+            return $aResponse;
+        }
+
+        $aResponse["estado"] = "success";
+        $aResponse["mensaje"] = "La especie de araña se elimino satisfactoriamente";
+        $aResponse["datos"] = $objDB->execute($sql);
+        $objDB->close();
+        return $aResponse;
+    }
+
+}
+
+?>
+
+autoload.php:
+<?php
+/**
+ * Este script contiene las dependencias de código que se
+ * van a requerir en todo el proyecto
+ */
+
+include "config.php";
+include "includes/database.inc.php";
+include "models/centro-investigacion-model.inc.php";
+include "models/observacion-model.inc.php";
+include "models/arana-model.inc.php";
+?>
+
+config.php:
+<?php
+
+/*
+*config.php
+*Archivo de configuraciòn de acceso a datos
+ */
+
+define("HOST","localhost");
+define("USER","cristian");
+define("PASSWORD","383521");
+define("DATABASE","arana_db");
+
+
+?>
+
+index.php:
+<?php
+include "autoload.php";
+
+// ini_set('display_errors', 1);
+// ini_set('display_startup_errors', 1);
+// error_reporting(E_ALL);
+
+// Pongo los encabezados por si me conecto desde javascript de otro servidor,
+// me autorice la política CORS.
+
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Headers: X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Request-Method');
+header('Access-Control-Allow-Method: GET, POST, OPTIONS, PUT, DELETE');
+header('Allow: GET, POST, OPTIONS, PUT, DELETE');
+
+//Tomo la url y la convierto en array
+$url = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
+$aUrl = explode("/", $url);
+
+//Recupero el nombre del metodo a ejecutar
+$metodo_a_ejecutar = $aUrl[sizeof($aUrl) - 1];
+
+$datos = file_get_contents("php://input");
+
+$objModel = new AranaModel();
+
+// $objModel = new CentroInvestigacionModel();
+$response = $objModel->{$metodo_a_ejecutar}($datos);
+echo json_encode($response);
+
+?>
+
+Estas rutas funcionan asi:
+arana-page.local/index.php/get -> trae todo las arañas. si pasas este codigo las filtra por id: {
+    "filter" : "id_especie = 4"
+}
+
+arana-page.local/index.php/insert -> con este codigo inserta un tipo de araña: {
+  "nombre_cientifico": "Nephila clavipes",
+  "nombre_comun": "Araña de Seda Dorada",
+  "familia": "Araneidae",
+  "habitat": "Bosques tropicales y subtropicales",
+  "peligrosidad": "Leve"
+}
+
+arana-page.local/index.php/update -> {
+  "id_especie":"5", 
+  "nombre_cientifico": "Nephila clavipes",
+  "nombre_comun": "seda dorada",
+  "familia": "Araneidae",
+  "habitat": "Bosques tropicales y olavarria y subtropicales",
+  "peligrosidad": "Leve"
+}
+
+arana-page.local/index.php/delete -> {
+   "nombre_cientifico" :"Nephila clavipes"
+}
+
