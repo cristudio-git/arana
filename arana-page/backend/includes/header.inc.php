@@ -20,7 +20,7 @@
             <li class="nav-item"><a class="nav-link active" aria-current="page" href="index.php">INICIO</a></li>
             <li class="nav-item"><a class="nav-link active" href="#">CENTRO DE INVESTIGACION</a></li>
             <li class="nav-item"><a class="nav-link active" href="#">OBSERVACIONES</a></li>
-            <li class="nav-item"><a class="nav-link active" href="aranas.php">ARAÑAS</a></li>
+            <li class="nav-item"><a class="nav-link active" href="especiesView.php">ARAÑAS</a></li>
           </ul>
         </div>
       </div>
