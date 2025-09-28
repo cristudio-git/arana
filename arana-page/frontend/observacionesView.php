@@ -10,11 +10,12 @@
     <thead class="table-dark">
       <tr>
         <th>ID</th>
-        <th>Nombre Científico</th>
-        <th>Nombre Común</th>
-        <th>Familia</th>
-        <th>Hábitat</th>
-        <th>Peligrosidad</th>
+        <th>Fecha</th>
+        <th>Cantidad de ejemplares</th>
+        <th>Comportamiento observado</th>
+        <th>Inversión</th>
+        <th>Especie</th>
+        <th>Centro</th>
       </tr>
     </thead>
     <tbody>
@@ -40,33 +41,28 @@
         <div class="modal-body">
           <form>
             <div class="mb-3">
-              <label for="nombre_cientifico" class="col-form-label">Nombre cientifico</label>
-              <input type="text" class="form-control" id="nombre_cientifico">
+              <label for="fecha" class="col-form-label">Fecha</label>
+              <input type="date" class="form-control" id="fecha">
             </div>
             <div class="mb-3">
-              <label for="nombre_comun" class="col-form-label">Nombre común</label>
-              <input type="text" class="form-control" id="nombre_comun">  
+              <label for="cantidad_ejemplares" class="col-form-label">Cantidad de ejemplares</label>
+              <input type="text" class="form-control" id="cantidad_ejemplares">
             </div>
             <div class="mb-3">
-              <label for="familia" class="col-form-label">Familia</label>
-              <input type="text" class="form-control" id="familia"> 
+              <label for="comportamiento_observado" class="col-form-label">Comportamiento observado</label>
+              <input type="text" class="form-control" id="comportamiento_observado">
             </div>
             <div class="mb-3">
-              <label for="habitat" class="col-form-label">Hábitat</label>
-              <input type="text" class="form-control" id="habitat">
+              <label for="inversion" class="col-form-label">Inversión</label>
+              <input type="text" class="form-control" id="inversion">
             </div>
-            
+               <div class="mb-3">
+              <label for="id_especie" class="col-form-label">Especie</label>
+              <input type="text" class="form-control" id="id_especie">
+            </div>
             <div class="mb-3">
-              <label class="col-form-label d-block mb-2">Peligrosidad</label>
-
-              <input type="radio" class="btn-check" name="peligrosidad" id="peligrosidadAlta" value="Alta" autocomplete="off">
-              <label class="btn btn-outline-danger me-2" for="peligrosidadAlta">Alta</label>
-
-              <input type="radio" class="btn-check" name="peligrosidad" id="peligrosidadMedia" value="Media" autocomplete="off">
-              <label class="btn btn-outline-warning me-2" for="peligrosidadMedia">Media</label>
-
-              <input type="radio" class="btn-check" name="peligrosidad" id="peligrosidadBaja" value="Baja" autocomplete="off">
-              <label class="btn btn-outline-success" for="peligrosidadBaja">Baja</label>
+              <label for="id_centro" class="col-form-label">Centro</label>
+              <input type="text" class="form-control" id="id_centro">
             </div>
 
           </form>
@@ -79,6 +75,6 @@
     </div>
   </div>
 
-<script type="module" src="js/especies.js"></script>
+<script type="module" src="js/observaciones.js"></script>
 
 <?php include '../backend/includes/footer.inc.php'; ?>

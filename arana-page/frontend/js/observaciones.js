@@ -3,18 +3,19 @@ import APIs from "./api.js";
 
 const api = new APIs();
 
-function renderEspecies(tbody, data) {
+function renderObservaciones(tbody, data) {
   if (data.estado === "success") {
     tbody.innerHTML = "";
-    data.datos.forEach((especie) => {
+    data.datos.forEach((observacion) => {
       const fila = document.createElement("tr");
       fila.innerHTML = `
-        <td>${especie.id_especie}</td>
-        <td>${especie.nombre_cientifico}</td>
-        <td>${especie.nombre_comun}</td>
-        <td>${especie.familia}</td>
-        <td>${especie.habitat}</td>
-        <td>${especie.peligrosidad}</td>
+        <td>${observacion.id_observacion}</td>
+        <td>${observacion.fecha}</td>
+        <td>${observacion.cantidad_ejemplares}</td>
+        <td>${observacion.comportamiento_observado}</td>
+        <td>${observacion.inversion}</td>
+        <td>${observacion.id_especie}</td>
+        <td>${observacion.id_centro}</td>
       `;
       tbody.appendChild(fila);
     });
@@ -23,32 +24,31 @@ function renderEspecies(tbody, data) {
   }
 }
 
-function cargarEspecies() {
+function cargarObservaciones() {
   const tbody = document.querySelector("#tabla-especies tbody");
   if (!tbody) return;
-  const url = getUrlApi("especies") + "/get";
+  const url = getUrlApi("observaciones") + "/get";
   api.call(
     url, 
     "", 
     "get", 
     (data) => {
 
-    renderEspecies(tbody, data);
+    renderObservaciones(tbody, data);
 
     }, 
     false
   );
 }
 
-
-async function crearEspecie(nuevaEspecie) {
-  const peligrosidadSeleccionada = document.querySelector('input[name="peligrosidad"]:checked')?.value || "";
+async function crearObservacion(nuevaEspecie) {
   nuevaEspecie = {
-      nombre_cientifico: document.getElementById("nombre_cientifico").value,
-      nombre_comun: document.getElementById("nombre_comun").value,
-      familia: document.getElementById("familia").value,
-      habitat: document.getElementById("habitat").value,
-      peligrosidad: peligrosidadSeleccionada
+      fecha: document.getElementById("fecha").value,
+      cantidad_ejemplares: document.getElementById("cantidad_ejemplares").value,
+      comportamiento_observado: document.getElementById("comportamiento_observado").value,
+      inversion: document.getElementById("inversion").value,
+      id_especie: document.getElementById("id_especie").value,
+      id_centro: document.getElementById("id_centro").value
   };
   const url = getUrlApi("especies") + "/insert";
   return await api.call(
@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalAgregar = new bootstrap.Modal(modalAgregarEl);
   const btnAgregar = document.getElementById('btnAgregar');
   const btnGuardar = document.getElementById('btnGuardar');
-  cargarEspecies();
+  cargarObservaciones();
 
   btnAgregar.addEventListener("click", () => {
 
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   btnGuardar.addEventListener("click", () => {
-    crearEspecie();
+    crearObservacion();
     modalAgregar.hide();  
   });
 
