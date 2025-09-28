@@ -13,6 +13,11 @@ class AranaModel {
 
     public function get($xfilter = "") {
         $aFilter = json_decode($xfilter,true);
+      
+        // if (!is_array($aFilter) || !isset($aFilter["filter"])) {
+        //     $aFilter = ["filter" => ""];
+        // }
+        
         $aResponse = [];
         $sql = "SELECT * FROM especie_arana";
 
