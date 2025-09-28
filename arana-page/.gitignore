@@ -1,0 +1,20 @@
+# Build / distribución / salida
+frontend/dist/
+build/
+frontend/build/
+*.min.js
+
+# Archivos de entorno
+backend/config.php
+
+
+# IDEs / editores
+.vscode/
+
+
+# Cachés
+.cache/
+tmp/
+*.tmp
+*.swp
+
