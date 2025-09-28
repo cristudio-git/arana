@@ -57,29 +57,20 @@ async function crearEspecie(nuevaEspecie) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  const modalAgregarEl = document.getElementById('modalAgregar');
+  const modalAgregar = new bootstrap.Modal(modalAgregarEl);
   const btnAgregar = document.getElementById('btnAgregar');
+  const btnGuardar = document.getElementById('btnGuardar');
   cargarEspecies();
 
   btnAgregar.addEventListener("click", () => {
-    const modalAgregarEl = document.getElementById('modalAgregar');
-    const modalAgregar = new bootstrap.Modal(modalAgregarEl);
 
-    // Si querés capturar cuando se muestra
-    modalAgregarEl.addEventListener('show.bs.modal', event => {
-      const button = event.relatedTarget;
-      const recipient = modalAgregarEl.getAttribute('data-bs-whatever');
-
-      const modalTitle = modalAgregarEl.querySelector('.modal-title');
-      const modalBodyInput = modalAgregarEl.querySelector('.modal-body input');
-
-      modalTitle.textContent = `New message to ${recipient}`;
-      modalBodyInput.value = recipient;
-    });
-
-    // Mostrar el modal
-    modalAgregar.show();
-
-    // Ejecutar tu función
-    crearEspecie();
+      modalAgregar.show();
   });
+
+  btnGuardar.addEventListener("click", () => {
+    crearEspecie();
+    modalAgregar.hide();  
+  });
+
 });
