@@ -11,7 +11,7 @@
   <header class="header">
     <nav class="navbar navbar-expand-lg bg-body-tertiary">
       <div class="container-fluid">
-        <h1 class="display-1 ms-2 me-4 ">ONG</h1>
+        <h1 class="display-1 ms-2 me-4 ">INVESPIDER</h1>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>

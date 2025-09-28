@@ -2,8 +2,9 @@
 
 <h1 class="mb-4">Especies de Arañas</h1>
 
-<!-- Botón agregar especie -->
-<button class="btn btn-success mb-3" id="btnAgregar">Agregar Especie</button>
+<div class="d-flex">
+  <button class="btn btn-success mb-3 ms-3" id="btnAgregar">Agregar Especie</button>
+</div>
 
  <table class="table table-striped-columns" id="tabla-especies">
     <thead class="table-dark">
