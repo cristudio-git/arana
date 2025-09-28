@@ -8,7 +8,7 @@
     </div>
   </footer>
 
-  <script type="module" src="js/especies.js"></script>
+
   <script src="dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
