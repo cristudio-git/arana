@@ -133,7 +133,8 @@ class AranaModel {
         $aDatos = json_decode($xdatos, true);
         $aResponse = [];
 
-        $sql = "CALL delete_especie_arana('" . $aDatos['nombre_cientifico'] . "')";
+        $sql = "DELETE FROM especie_arana 
+                WHERE id_especie = " . intval($aDatos["id_especie"]);
 
         $objDB = new DataBase();
 
