@@ -1,0 +1,13 @@
+body {
+    font-family: sans-serif;
+    margin: 2rem;
+}
+
+.telefono-item {
+    margin-bottom: 1rem;
+}
+
+button {
+    margin-top: 0.5rem;
+    margin-right: 0.5rem;
+}

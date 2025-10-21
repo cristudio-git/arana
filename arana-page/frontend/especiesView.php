@@ -1,27 +1,28 @@
 <?php include '../backend/includes/header.inc.php'; ?>
+<div class="container mt-4">
+  <h1 class="mb-4">Especies de Arañas</h1>
 
-<h1 class="mb-4">Especies de Arañas</h1>
+  <div class="d-flex">
+    <button class="btn btn-success mb-3 ms-3" id="btnAgregar">Agregar Especie</button>
+  </div>
 
-<div class="d-flex">
-  <button class="btn btn-success mb-3 ms-3" id="btnAgregar">Agregar Especie</button>
-</div>
-
- <table class="table table-striped-columns" id="tabla-especies">
-    <thead class="table-dark">
-      <tr>
-        <th>ID</th>
-        <th>Nombre Científico</th>
-        <th>Nombre Común</th>
-        <th>Familia</th>
-        <th>Hábitat</th>
-        <th>Peligrosidad</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Se llena dinámicamente con JS -->
-    </tbody>
+  <table class="table table-bordered table-striped" id="tabla-especies">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre Científico</th>
+          <th>Nombre Común</th>
+          <th>Familia</th>
+          <th>Hábitat</th>
+          <th>Peligrosidad</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="8">Cargando...</td></tr>
+        <!-- Se llena dinámicamente con JS -->
+      </tbody>
   </table>
-
+</div>
   <!-- MODAL AGREGAR -->
 
   <div class="modal fade" id="modalAgregar" tabindex="-1" aria-labelledby="agregarModalLabel" aria-hidden="true">
