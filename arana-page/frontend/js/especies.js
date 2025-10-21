@@ -3,192 +3,120 @@ import APIs from "./api.js";
 
 const api = new APIs();
 
-// --- Funciones de Utilidad ---
-
 function limpiarEstilosValidacion(form) {
-    // Busca y limpia estilos de error dentro del formulario pasado como argumento
-    form.querySelectorAll('.form-control.is-invalid').forEach(el => {
-        el.classList.remove('is-invalid');
-    });
-
-    // limpiar peligrosidad
-    const feedbackPeligrosidad = document.getElementById('peligrosidad-feedback');
-    if (feedbackPeligrosidad) {
-        feedbackPeligrosidad.classList.add('d-none');
-    }
+    form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    const fb = form.querySelector('.invalid-feedback.d-block, .invalid-feedback:not(.d-none)');
+    if (fb) fb.classList.add('d-none');
 }
 
-/**
- * Valida un formulario específico (Agregar o Editar).
- * @param {HTMLElement} form - El elemento <form> a validar.
- */
 function validarEspecie(form) {
     let valido = true;
+    const nombre = form.querySelector('[id$="nombre_cientifico"]');
+    const comun = form.querySelector('[id$="nombre_comun"]');
+    const familia = form.querySelector('[id$="familia"]');
+    const habitat = form.querySelector('[id$="habitat"]');
+    // Selecciona cualquier input cuyo name termine en 'peligrosidad'
+    const peligrosidad = form.querySelector('input[name$="peligrosidad"]:checked');
+    limpiarEstilosValidacion(form);
 
-    // Determina los IDs de los campos dentro del formulario que se está validando.
-    // Si es el modalEditar, buscará los campos con prefijo 'edit_'.
-    const prefix = form.id === 'formEditar' ? 'edit_' : '';
-
-    const nombreCientifico = form.querySelector(`#${prefix}nombre_cientifico`);
-    const nombreComun = form.querySelector(`#${prefix}nombre_comun`);
-    const familia = form.querySelector(`#${prefix}familia`);
-    const habitat = form.querySelector(`#${prefix}habitat`);
-    
-    // Peligrosidad: se verifica que esté dentro del form.
-    const peligrosidad = form.querySelector('input[name="peligrosidad"]:checked'); 
-    const peligrosidadFeedback = document.getElementById("peligrosidad-feedback");
-
-    //  Si los elementos existen, limpiar estilos antes de re-validar
-    if (nombreCientifico) nombreCientifico.classList.remove("is-invalid");
-    if (nombreComun) nombreComun.classList.remove("is-invalid");
-    if (familia) familia.classList.remove("is-invalid");
-    if (habitat) habitat.classList.remove("is-invalid");
-    if (peligrosidadFeedback) peligrosidadFeedback.classList.add("d-none");
-
-    // Lógica de validación
-    if (!nombreCientifico || nombreCientifico.value.trim() === "" || !/^[A-Z][a-z]+(\s[a-z]+)*$/.test(nombreCientifico.value.trim())) {
-        if (nombreCientifico) nombreCientifico.classList.add("is-invalid");
-        valido = false;
-    }
-    if (!nombreComun || nombreComun.value.trim() === "") {
-        if (nombreComun) nombreComun.classList.add("is-invalid");
-        valido = false;
-    }
-    if (!familia || familia.value.trim() === "") {
-        if (familia) familia.classList.add("is-invalid");
-        valido = false;
-    }
-    if (!habitat || habitat.value.trim() === "") {
-        if (habitat) habitat.classList.add("is-invalid");
-        valido = false;
-    }
+    if (!nombre || nombre.value.trim() === "" ) { nombre?.classList.add('is-invalid'); valido = false; }
+    if (!comun || comun.value.trim() === "" ) { comun?.classList.add('is-invalid'); valido = false; }
+    if (!familia || familia.value.trim() === "" ) { familia?.classList.add('is-invalid'); valido = false; }
+    if (!habitat || habitat.value.trim() === "" ) { habitat?.classList.add('is-invalid'); valido = false; }
     if (!peligrosidad) {
-        if (peligrosidadFeedback) peligrosidadFeedback.classList.remove("d-none");
+        const fb = form.querySelector('#peligrosidad-feedback') || form.querySelector('.invalid-feedback');
+        if (fb) fb.classList.remove('d-none');
         valido = false;
     }
 
     return valido;
 }
 
+function renderEspecies(tbody, data, modalEditar, formEditar) {
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    if (data.estado !== "success" || !Array.isArray(data.datos)) {
+        tbody.innerHTML = `<tr><td colspan="6">${data.mensaje || 'Sin datos'}</td></tr>`;
+        return;
+    }
+    const frag = document.createDocumentFragment();
+    data.datos.forEach(especie => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${especie.id_especie}</td>
+            <td>${escapeHtml(especie.nombre_cientifico)}</td>
+            <td>${escapeHtml(especie.nombre_comun)}</td>
+            <td>${escapeHtml(especie.familia)}</td>
+            <td>${escapeHtml(especie.habitat)}</td>
+            <td>${escapeHtml(especie.peligrosidad)}</td>
+        `;
+        tr.style.cursor = 'pointer';
+        tr.addEventListener('click', () => cargarEspecieParaEdicion(especie.id_especie, modalEditar, formEditar));
+        frag.appendChild(tr);
+    });
+    tbody.appendChild(frag);
+}
 
-// --- LÓGICA DE EDICIÓN  ---
+function escapeHtml(str = "") {
+    return String(str)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+}
 
-
-/**
- * Carga los datos de una especie en el formulario de edición y muestra el modal.
- * @param {number} id_especie - El ID de la especie a cargar.
- */
-function cargarEspecieParaEdicion(id_especie, modalEditar, formEditar) {
-    const filtro = { "filter": `id_especie = ${id_especie}` };
+// carga tabla
+async function cargarEspecies(modalEditar, formEditar) {
+    const tbody = document.querySelector("#tabla-especies tbody");
     const url = getUrlApi("especies") + "/get";
+    try {
+        const data = await api.get(url);
+        renderEspecies(tbody, data, modalEditar, formEditar);
+    } catch (err) {
+        console.error("Error cargando especies:", err);
+        if (tbody) tbody.innerHTML = `<tr><td colspan="6">Error al cargar datos</td></tr>`;
+    }
+}
 
-    api.call(url, filtro, "POST", (data) => {
+// cargar para editar
+async function cargarEspecieParaEdicion(id_especie, modalEditar, formEditar) {
+    const url = getUrlApi("especies") + "/get";
+    try {
+        const data = await api.post(url, { filter: `id_especie = ${parseInt(id_especie,10)}` });
         if (data.estado === "success" && data.datos?.length > 0) {
             const especie = data.datos[0];
             limpiarEstilosValidacion(formEditar);
-
             formEditar.querySelector('#edit_id_especie').value = especie.id_especie;
             formEditar.querySelector('#edit_nombre_cientifico').value = especie.nombre_cientifico;
             formEditar.querySelector('#edit_nombre_comun').value = especie.nombre_comun;
             formEditar.querySelector('#edit_familia').value = especie.familia;
             formEditar.querySelector('#edit_habitat').value = especie.habitat;
-
-            // --- Seleccionar el radio correcto ---
-            const valorPeligrosidad = especie.peligrosidad;
-
-            // Se busca dentro del formEditar radios con name edit_peligrosidad
-            formEditar.querySelectorAll('input[name="edit_peligrosidad"]').forEach(radio => {
-                radio.checked = radio.value === valorPeligrosidad;
+          
+            formEditar.querySelectorAll('input[name$="peligrosidad"]').forEach(radio => {
+                radio.checked = radio.value === especie.peligrosidad;
             });
-
             modalEditar.show();
         } else {
-            console.error("Error al obtener la especie:", data.mensaje);
+            console.error("No se encontró especie:", data.mensaje);
         }
-    }, true);
-}
-
-
-
-function renderEspecies(tbody, data, modalEditar, formEditar) { 
-    if (data.estado === "success") {
-        tbody.innerHTML = "";
-        data.datos.forEach((especie) => {
-            const fila = document.createElement("tr");
-            fila.innerHTML = `
-                <td>${especie.id_especie}</td>
-                <td>${especie.nombre_cientifico}</td>
-                <td>${especie.nombre_comun}</td>
-                <td>${especie.familia}</td>
-                <td>${especie.habitat}</td>
-                <td>${especie.peligrosidad}</td>
-            `;
-            
-            fila.style.cursor = 'pointer'; 
-            fila.addEventListener('click', () => {
-              
-                cargarEspecieParaEdicion(especie.id_especie, modalEditar, formEditar);
-            });
-
-            tbody.appendChild(fila);
-        });
-    } else {
-        tbody.innerHTML = `<tr><td colspan="6">${data.mensaje}</td></tr>`;
+    } catch (err) {
+        console.error("Error al solicitar especie:", err);
     }
 }
 
-// --- Función para cargar la tabla ---
-
-function cargarEspecies(modalEditar, formEditar) { 
-  const tbody = document.querySelector("#tabla-especies tbody");
-  if (!tbody) return;
-  const url = getUrlApi("especies") + "/get";
-  api.call(
-    url, 
-    "", 
-    "get", 
-    (data) => {
-        renderEspecies(tbody, data, modalEditar, formEditar); 
-    }, 
-    false
-  );
-}
-
-
-
-function crearEspecie(nuevaEspecie) {
+// Crear / actualizar / eliminar
+async function crearEspecie(nuevaEspecie) {
     const url = getUrlApi("especies") + "/insert";
-    return new Promise((resolve, reject) => {
-        api.call(url, nuevaEspecie, "POST", resolve, true, reject);
-    });
+    return api.post(url, nuevaEspecie);
 }
-
-function actualizarEspecie(datosEspecie) {
+async function actualizarEspecie(datosEspecie) {
     const url = getUrlApi("especies") + "/update";
-    return new Promise((resolve, reject) => {
-        api.call(url, datosEspecie, "PUT", resolve, true, reject);
-    });
+    return api.put(url, datosEspecie);
 }
-
-
-function eliminarEspecie(id_especie) {
-   
-    const url = getUrlApi("especies") + "/delete"; 
-    
-   
-    const datosAEliminar = { id_especie: id_especie }; 
-    
-    return new Promise((resolve, reject) => {
-        
-        api.call(
-            url, 
-            datosAEliminar, 
-            "DELETE", 
-            resolve, 
-            true, // 'true' indica que hay datos en el body (JSON)
-            reject
-        );
-    });
+async function eliminarEspecie(id_especie) {
+    const url = getUrlApi("especies") + "/delete";
+    return api.delete(url, { id_especie: parseInt(id_especie, 10) });
 }
 
 

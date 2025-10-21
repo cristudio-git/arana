@@ -1,156 +1,139 @@
 <?php
+require_once(__DIR__ . "/../includes/database.inc.php");
+
+
 
 class AranaModel {
-
-    /**
-     * get
-     * Permite obtener todos los registros
-     * de la tabla arana
-     * @param string $xfilter Parámetro opcional 
-     * que define el filtro a aplicar
-     * @return array
-     */
-
     public function get($xfilter = "") {
         $aFilter = json_decode($xfilter,true);
-      
-        // if (!is_array($aFilter) || !isset($aFilter["filter"])) {
-        //     $aFilter = ["filter" => ""];
-        // }
-        
         $aResponse = [];
-        $sql = "SELECT * FROM especie_arana";
-
-        if (strcmp($aFilter["filter"], "") != 0)
-            $sql .= " WHERE " . $aFilter["filter"] . " ";
-
-        $sql .= " ORDER BY id_especie ASC";
+        $sqlBase = "SELECT * FROM especie_arana";
 
         $objDB = new DataBase();
-
         if (!$objDB->getEstadoConexion()) {
-            $aResponse["estado"] = "ERROR";
-            $aResponse["mensaje"] = $objDB->getMensajeError();
-            return $aResponse;
+            return ["estado" => "ERROR", "mensaje" => $objDB->getMensajeError()];
+        }
+
+        // condición SQL segura (se recomienda filtrar por id en el frontend)
+        if (is_array($aFilter) && !empty($aFilter["filter"])) {
+            //  frontend pasa algo asi (ej: "id_especie = 3")
+            $sql = $sqlBase . " WHERE " . $aFilter["filter"] . " ORDER BY id_especie ASC";
+            $aResponse["datos"] = $objDB->getQuery($sql);
+        } else {
+            $sql = $sqlBase . " ORDER BY id_especie ASC";
+            $aResponse["datos"] = $objDB->getQuery($sql);
         }
 
         $aResponse["estado"] = "success";
-        $aResponse["mensaje"] = "Araña encontrada con exito";
-        $aResponse["datos"] = $objDB->getQuery($sql);
-
+        $aResponse["mensaje"] = "Consulta realizada";
         $objDB->close();
         return $aResponse;
-
     }
-
-    
-    /**
-     * insert
-     * Permite insertar un registro en la tabla arana
-     * @param string $aDatos Array asociativo con los datos a insertar
-     * @return array Resultado de la ejecución
-     */
 
     public function insert($xdatos) {
         $aDatos = json_decode($xdatos, true);
-        $aResponse = [];
-
         if ($aDatos === null) {
-            return [
-                "estado" => "Error",
-                "mensaje" => "JSON invalido. Revisa el cuerpo de la peticion."
-            ];
-        }           
-
-        $sql = "INSERT INTO especie_arana(
-		            nombre_cientifico, 
-                    nombre_comun,
-                    familia,
-                    habitat,
-                    peligrosidad)
-	            VALUES(
-		            '" . $aDatos['nombre_cientifico'] ."',
-                    '" . $aDatos['nombre_comun'] ."',
-                    '" . $aDatos['familia'] ."',
-                    '" . $aDatos['habitat'] ."',
-                    '" . $aDatos['peligrosidad'] ."'
-                    )";
-        //var_dump($sql);
-        $objDB = new DataBase();
-
-        if (!$objDB->getEstadoConexion() ) {
-            $aResponse["estado"] = "Error";
-            $aResponse["mensaje"] = $objDB->getMensajeError();
-            return $aResponse;
+            return ["estado" => "Error", "mensaje" => "JSON invalido. Revisa el cuerpo de la peticion."];
         }
 
-        $aResponse["estado"] = "success";
-        $aResponse["mensaje"] = "La especie de araña se dio de alta satisfactoriamente";
-        $aResponse["datos"] = $objDB->execute($sql);
-        
+        $objDB = new DataBase();
+        if (!$objDB->getEstadoConexion()) {
+            return ["estado" => "Error", "mensaje" => $objDB->getMensajeError()];
+        }
+
+        $conn = $objDB->getConnection();
+        $stmt = $conn->prepare("INSERT INTO especie_arana (nombre_cientifico, nombre_comun, familia, habitat, peligrosidad) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("sssss",
+            $aDatos['nombre_cientifico'],
+            $aDatos['nombre_comun'],
+            $aDatos['familia'],
+            $aDatos['habitat'],
+            $aDatos['peligrosidad']
+        );
+
+        $ok = $objDB->executePrepared($stmt);
+
+        $aResponse = [];
+        if ($ok) {
+            $aResponse["estado"] = "success";
+            $aResponse["mensaje"] = "La especie de araña se dio de alta satisfactoriamente";
+            $aResponse["datos"] = ["insert_id" => $conn->insert_id];
+        } else {
+            $aResponse["estado"] = "Error";
+            $aResponse["mensaje"] = $conn->error;
+        }
+
+        $stmt->close();
         $objDB->close();
         return $aResponse;
     }
 
-    /**
-     * update
-     * Permite actualizar un registro de la tabla arana.
-     * @param array $aDatos
-     * @return array
-     */
     public function update($xdatos) {
         $aDatos = json_decode($xdatos, true);
-        $aResponse = [];
-        $sql = "UPDATE
-                    especie_arana
-                SET
-                    nombre_cientifico = '" . $aDatos["nombre_cientifico"] . "',
-                    nombre_comun = '" . $aDatos["nombre_comun"] . "',
-                    familia = '" .$aDatos["familia"] ."',
-                    habitat = '" .$aDatos["habitat"] ."',
-                    peligrosidad = '" .$aDatos["peligrosidad"] ."'
-                WHERE
-                    especie_arana.id_especie = ". $aDatos["id_especie"];
-        
-      
-        $objDB = new DataBase();
-
-        if (!$objDB->getEstadoConexion() ) {
-            $aResponse["estado"] = "Error";
-            $aResponse["mensaje"] = $objDB->getMensajeError();
-            return $aResponse;
+        if ($aDatos === null) {
+            return ["estado" => "Error", "mensaje" => "JSON invalido."];
         }
 
-        $aResponse["estado"] = "success";
-        $aResponse["mensaje"] = "La especie de araña se actualizo satisfactoriamente";
-        $aResponse["datos"] = $objDB->execute($sql);
+        $objDB = new DataBase();
+        if (!$objDB->getEstadoConexion()) {
+            return ["estado" => "Error", "mensaje" => $objDB->getMensajeError()];
+        }
+
+        $conn = $objDB->getConnection();
+        $stmt = $conn->prepare("UPDATE especie_arana SET nombre_cientifico = ?, nombre_comun = ?, familia = ?, habitat = ?, peligrosidad = ? WHERE id_especie = ?");
+        $stmt->bind_param("sssssi",
+            $aDatos["nombre_cientifico"],
+            $aDatos["nombre_comun"],
+            $aDatos["familia"],
+            $aDatos["habitat"],
+            $aDatos["peligrosidad"],
+            $aDatos["id_especie"]
+        );
+
+        $ok = $objDB->executePrepared($stmt);
+        $aResponse = [];
+        if ($ok) {
+            $aResponse["estado"] = "success";
+            $aResponse["mensaje"] = "La especie de araña se actualizo satisfactoriamente";
+        } else {
+            $aResponse["estado"] = "Error";
+            $aResponse["mensaje"] = $conn->error;
+        }
+
+        $stmt->close();
         $objDB->close();
         return $aResponse;
-
     }
 
     public function delete($xdatos) {
         $aDatos = json_decode($xdatos, true);
-        $aResponse = [];
-
-        $sql = "DELETE FROM especie_arana 
-                WHERE id_especie = " . intval($aDatos["id_especie"]);
-
-        $objDB = new DataBase();
-
-        if (!$objDB->getEstadoConexion() ) {
-            $aResponse["estado"] = "Error";
-            $aResponse["mensaje"] = $objDB->getMensajeError();
-            return $aResponse;
+        if ($aDatos === null || !isset($aDatos["id_especie"])) {
+            return ["estado" => "Error", "mensaje" => "JSON invalido o id_especie faltante."];
         }
 
-        $aResponse["estado"] = "success";
-        $aResponse["mensaje"] = "La especie de araña se elimino satisfactoriamente";
-        $aResponse["datos"] = $objDB->execute($sql);
+        $objDB = new DataBase();
+        if (!$objDB->getEstadoConexion()) {
+            return ["estado" => "Error", "mensaje" => $objDB->getMensajeError()];
+        }
+
+        $conn = $objDB->getConnection();
+        $stmt = $conn->prepare("DELETE FROM especie_arana WHERE id_especie = ?");
+        $id = intval($aDatos["id_especie"]);
+        $stmt->bind_param("i", $id);
+
+        $ok = $objDB->executePrepared($stmt);
+        $aResponse = [];
+        if ($ok) {
+            $aResponse["estado"] = "success";
+            $aResponse["mensaje"] = "La especie de araña se elimino satisfactoriamente";
+        } else {
+            $aResponse["estado"] = "Error";
+            $aResponse["mensaje"] = $conn->error;
+        }
+
+        $stmt->close();
         $objDB->close();
         return $aResponse;
     }
-
 }
-
 ?>

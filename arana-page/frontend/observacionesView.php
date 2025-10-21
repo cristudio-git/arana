@@ -1,79 +1,122 @@
 <?php include '../backend/includes/header.inc.php'; ?>
 
-<h1 class="mb-4">Especies de Arañas</h1>
+<div class="container mt-4">
+    <h2 class="mb-4">Gestión de Observaciones</h2>
+    <button id="btnAgregar" class="btn btn-primary mb-3">Nueva Observación</button>
 
-<div class="d-flex">
-  <button class="btn btn-success mb-3 ms-3" id="btnAgregar">Agregar Especie</button>
+    <table id="tabla-observaciones" class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Fecha</th>
+                <th>Cantidad</th>
+                <th>Comportamiento</th>
+                <th>Inversión</th>
+                <th>Especie</th>
+                <th>Centro</th>
+            </tr>
+        </thead>
+        <tbody><tr><td colspan="8">Cargando...</td></tr></tbody>
+    </table>
 </div>
 
- <table class="table table-striped-columns" id="tabla-especies">
-    <thead class="table-dark">
-      <tr>
-        <th>ID</th>
-        <th>Fecha</th>
-        <th>Cantidad de ejemplares</th>
-        <th>Comportamiento observado</th>
-        <th>Inversión</th>
-        <th>Especie</th>
-        <th>Centro</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Se llena dinámicamente con JS -->
-    </tbody>
-  </table>
-
-<!-- <button 
-  class="btn btn-success mb-3" 
-  id="btnAgregar"
-  data-bs-toggle="modal" 
-  data-bs-target="#modalAgregar">
-  Agregar Especie
-</button> -->
-
-  <div class="modal fade" id="modalAgregar" tabindex="-1" aria-labelledby="agregarModalLabel" aria-hidden="true">
+<!-- MODAL AGREGAR -->
+<div class="modal fade" id="modalAgregar" tabindex="-1">
     <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h1 class="modal-title fs-5" id="agregarModalLabel">Especie</h1>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content">
+            <div class="modal-header"><h5>Nueva Observación</h5></div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label>Fecha</label>
+                        <input type="date" id="fecha" class="form-control">
+                        <div class="invalid-feedback">Ingrese una fecha válida</div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Cantidad de Ejemplares</label>
+                        <input type="number" id="cantidad_ejemplares" class="form-control">
+                        <div class="invalid-feedback">Ingrese un número válido</div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Comportamiento Observado</label>
+                        <textarea id="comportamiento_observado" class="form-control"></textarea>
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Inversión</label>
+                        <input type="number" step="0.01" id="inversion" class="form-control">
+                        <div class="invalid-feedback">Ingrese un valor numérico</div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Especie</label>
+                        <select id="selectEspecie" class="form-select">
+                            <option value="">Cargando especies...</option>
+                        </select>
+                        <div class="invalid-feedback">Seleccione una especie</div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Centro</label>
+                        <select id="selectCentro" class="form-select">
+                            <option value="">Cargando centros...</option>
+                        </select>
+                        <div class="invalid-feedback">Seleccione un centro</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="btnGuardar" class="btn btn-success">Guardar</button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            </div>
         </div>
-        <div class="modal-body">
-          <form>
-            <div class="mb-3">
-              <label for="fecha" class="col-form-label">Fecha</label>
-              <input type="date" class="form-control" id="fecha">
-            </div>
-            <div class="mb-3">
-              <label for="cantidad_ejemplares" class="col-form-label">Cantidad de ejemplares</label>
-              <input type="text" class="form-control" id="cantidad_ejemplares">
-            </div>
-            <div class="mb-3">
-              <label for="comportamiento_observado" class="col-form-label">Comportamiento observado</label>
-              <input type="text" class="form-control" id="comportamiento_observado">
-            </div>
-            <div class="mb-3">
-              <label for="inversion" class="col-form-label">Inversión</label>
-              <input type="text" class="form-control" id="inversion">
-            </div>
-               <div class="mb-3">
-              <label for="id_especie" class="col-form-label">Especie</label>
-              <input type="text" class="form-control" id="id_especie">
-            </div>
-            <div class="mb-3">
-              <label for="id_centro" class="col-form-label">Centro</label>
-              <input type="text" class="form-control" id="id_centro">
-            </div>
-
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" >Cerrar</button>
-          <button type="button" class="btn btn-primary" id="btnGuardar">Guardar</button>
-        </div>
-      </div>
     </div>
-  </div>
+</div>
+
+<!-- MODAL EDITAR -->
+<div class="modal fade" id="modalEditar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5>Editar Observación</h5></div>
+            <div class="modal-body">
+                <form>
+                    <input type="hidden" id="edit_id_observacion">
+                    <div class="mb-3">
+                        <label>Fecha</label>
+                        <input type="date" id="edit_fecha" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label>Cantidad de Ejemplares</label>
+                        <input type="number" id="edit_cantidad_ejemplares" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label>Comportamiento Observado</label>
+                        <textarea id="edit_comportamiento_observado" class="form-control"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label>Inversión</label>
+                        <input type="number" step="0.01" id="edit_inversion" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label>Especie</label>
+                        <select id="edit_selectEspecie" class="form-select">
+                            <option value="">Cargando especies...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Centro</label>
+                        <select id="edit_selectCentro" class="form-select">
+                            <option value="">Cargando centros...</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="btnActualizar" class="btn btn-primary">Actualizar</button>
+                <button id="btnEliminar" class="btn btn-danger">Eliminar</button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script type="module" src="js/observaciones.js"></script>
 
