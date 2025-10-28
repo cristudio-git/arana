@@ -1,4 +1,4 @@
-<?php include '../backend/includes/header.inc.php'; ?>
+<?php include '../../backend/includes/header.inc.php'; ?>
 
 <div class="container mt-4">
     <h2 class="mb-4">Centro de investigación</h2>
@@ -120,4 +120,4 @@
 
 <script type="module" src="js/centro-investigacion.js"></script>
 
-<?php include '../backend/includes/footer.inc.php'; ?>
+<?php include '../../backend/includes/footer.inc.php'; ?>

@@ -3,23 +3,49 @@ require_once(__DIR__ . "/../includes/database.inc.php");
 
 class ObservacionModel {
     
+    /**
+     * Obtiene una o todas las observaciones con los detalles de especie y centro necesarios para el frontend.
+     * @param string $xfilter JSON con el filtro (ej: {"filter": "id_observacion = 5"}) o vacío para todas.
+     * @return array
+     */
     public function get($xfilter = "") {
-        $aFilter = json_decode($xfilter,true);
-        $aResponse = [];
-        $sqlBase = "SELECT * FROM observacion";
-
+        $aFilter = json_decode($xfilter, true);
         $objDB = new DataBase();
+        
         if (!$objDB->getEstadoConexion()) {
-            return ["estado" => "ERROR", "mensaje" => $objDB->getMensajeError()];
+            return ["estado" => "Error", "mensaje" => $objDB->getMensajeError()];
         }
 
-        // condición SQL segura (se recomienda filtrar por id en el frontend)
+        $sqlBase = "
+            SELECT 
+                o.id_observacion, o.fecha, o.cantidad_ejemplares, o.comportamiento_observado, o.inversion,
+                ea.nombre_comun, 
+                ci.nombre_centro,
+                c.cod_postal
+            FROM observacion o
+            JOIN especie_arana ea ON o.id_especie = ea.id_especie
+            JOIN centro_investigacion ci ON o.id_centro = ci.id_centro
+            JOIN ciudad c ON ci.id_ciudad = c.id_ciudad
+        ";
+
+        $sql = $sqlBase;
+        
+
         if (is_array($aFilter) && !empty($aFilter["filter"])) {
-            // desde el frontend se debe pasar algo asi(ej: "id_especie = 3")
-            $sql = $sqlBase . " WHERE " . $aFilter["filter"] . " ORDER BY id_especie ASC";
+            
+            $sql .= " WHERE " . $aFilter["filter"];
             $aResponse["datos"] = $objDB->getQuery($sql);
-        } else {
-            $sql = $sqlBase . " ORDER BY id_especie ASC";
+            
+            // Si es para edición, se espera 1 solo registro
+            if (!empty($aResponse["datos"])) {
+                 // Devolver el primer elemento directamente si se espera uno solo
+                 $aResponse["datos"] = [$aResponse["datos"][0]]; 
+            }
+        } 
+        
+        //Obtener TODAS las observaciones (para la tabla principal)
+        else {
+            $sql .= " ORDER BY o.fecha DESC";
             $aResponse["datos"] = $objDB->getQuery($sql);
         }
 
@@ -29,11 +55,15 @@ class ObservacionModel {
         return $aResponse;
     }
     
-
+    /**
+     * Inserta una nueva observación usando el SP 'insert_observacion'.
+     * @param string $xdatos JSON con los datos.
+     * @return array
+     */
     public function insert($xdatos) {
         $aDatos = json_decode($xdatos, true);
         if ($aDatos === null) {
-            return ["estado" => "Error", "mensaje" => "JSON invalido. Revisa el cuerpo de la peticion."];
+            return ["estado" => "Error", "mensaje" => "JSON inválido. Revisa el cuerpo de la petición."];
         }
 
         $objDB = new DataBase();
@@ -43,43 +73,146 @@ class ObservacionModel {
 
         $conn = $objDB->getConnection();
 
-        // Llamada al procedimiento almacenado insert_observacion
-        $stmt = $conn->prepare("CALL insert_observacion(?, ?, ?, ?, ?, ?)");
-        if (!$stmt) {
-            $db->close();
-            return ["estado" => "ERROR", "mensaje" => $conn->error];
+        try {
+            
+            $stmt = $conn->prepare("CALL insert_observacion(?, ?, ?, ?, ?, ?)");
+            
+            if (!$stmt) {
+                throw new Exception("Error al preparar la consulta: " . $conn->error);
+            }
+
+            
+            $stmt->bind_param("sisdss", 
+                $aDatos["fecha"],
+                $aDatos["cantidad_ejemplares"],
+                $aDatos["comportamiento_observado"],
+                $aDatos["inversion"],
+                $aDatos["nombre_comun"],
+                $aDatos["nombre_centro"]
+            );
+
+            
+            $ok = $stmt->execute();
+
+            
+            $aResponse = [];
+            if ($ok) {
+                $result = $stmt->get_result(); 
+                
+                if ($result && $row = $result->fetch_assoc()) {
+                   
+                    $sp_message = $row['result']; 
+                    
+                    if (strpos($sp_message, 'ERROR') !== false) {
+                        $aResponse["estado"] = "Error";
+                    } else {
+                        $aResponse["estado"] = "success";
+                    }
+                    $aResponse["mensaje"] = $sp_message;
+                    
+                } else {
+                    $aResponse["estado"] = "success";
+                    $aResponse["mensaje"] = "Observación guardada con exito.";
+                }
+                
+            } else {
+                
+                $aResponse["estado"] = "Error";
+         
+                $aResponse["mensaje"] = "Error de ejecución: " . $stmt->error; 
+            }
+
+            $stmt->close();
+
+        } catch (Exception $e) {
+            $aResponse = ["estado" => "Error", "mensaje" => $e->getMessage()];
         }
-
-        $stmt->bind_param("sisdsi",
-            $aDatos["fecha"],
-            $aDatos["cantidad_ejemplares"],
-            $aDatos["comportamiento_observado"],
-            $aDatos["inversion"],
-            $aDatos["nombre_comun"],
-            $aDatos["cod_postal"]
-        );
-
-               $ok = $objDB->executePrepared($stmt);
-
-        $aResponse = [];
-        if ($ok) {
-            $aResponse["estado"] = "success";
-            $aResponse["mensaje"] = "La especie de araña se dio de alta satisfactoriamente";
-            $aResponse["datos"] = ["insert_id" => $conn->insert_id];
-        } else {
-            $aResponse["estado"] = "Error";
-            $aResponse["mensaje"] = $conn->error;
-        }
-
-        $stmt->close();
+        
         $objDB->close();
         return $aResponse;
     }
 
-    public function update($xDatos) {
+    /**
+     * Actualiza una observación existente usando el SP 'update_observacion'.
+     * @param string $xdatos JSON con los datos.
+     * @return array
+     */
+    public function update($xdatos) {
         $aDatos = json_decode($xdatos, true);
         if ($aDatos === null) {
-            return ["estado" => "Error", "mensaje" => "JSON invalido."];
+            return ["estado" => "Error", "mensaje" => "JSON inválido."];
+        }
+        
+        $objDB = new DataBase();
+        if (!$objDB->getEstadoConexion()) {
+            return ["estado" => "Error", "mensaje" => $objDB->getMensajeError()];
+        }
+
+        $conn = $objDB->getConnection();
+
+        try {
+        
+            $stmt = $conn->prepare("CALL update_observacion(?, ?, ?, ?, ?, ?, ?)");
+            
+            if (!$stmt) {
+                throw new Exception("Error al preparar la consulta: " . $conn->error);
+            }
+
+           
+            $stmt->bind_param("isisdss", 
+                $aDatos["id_observacion"],
+                $aDatos["fecha"],
+                $aDatos["cantidad_ejemplares"],
+                $aDatos["comportamiento_observado"],
+                $aDatos["inversion"],
+                $aDatos["nombre_comun"],
+                $aDatos["nombre_centro"]
+            );
+
+        $stmt->execute();
+
+        $result = $stmt->get_result(); 
+
+        if ($result && $row = $result->fetch_assoc()) {
+           
+            $mensaje = $row['result'] ?? "Observación actualizada, pero mensaje de SP no devuelto.";
+            
+            
+            if (strpos($mensaje, 'ERROR SQL') !== false || strpos($mensaje, 'Fallo') !== false) {
+                 $aResponse = ["estado" => "Error", "mensaje" => $mensaje];
+            } else {
+                 $aResponse = ["estado" => "success", "mensaje" => $mensaje];
+            }
+        } else {
+          
+            $aResponse = ["estado" => "success", "mensaje" => "Observación actualizada exitosamente (Respuesta directa del SP no disponible)."];
+        }
+
+       
+        while ($conn->more_results() && $conn->next_result()) { }
+        
+        $stmt->close();
+
+    } catch (Exception $e) {
+        
+        $aResponse = ["estado" => "Error", "mensaje" => "Error de servidor (PHP): " . $e->getMessage()];
+    }
+    
+    $objDB->close();
+    return $aResponse;
+}
+
+    /**
+     * Elimina una observación existente usando el SP 'delete_observacion'.
+     * @param string $xdatos JSON con el id_observacion.
+     * @return array
+     */
+    public function delete($xdatos) {
+        $aDatos = json_decode($xdatos, true);
+
+        
+        if ($aDatos === null || !isset($aDatos["id_observacion"])) {
+            return ["estado" => "Error", "mensaje" => "JSON inválido o id_observacion faltante."];
         }
 
         $objDB = new DataBase();
@@ -89,67 +222,35 @@ class ObservacionModel {
 
         $conn = $objDB->getConnection();
 
-        $stmt = $conn->prepare("CALL update_observacion(?, ?, ?, ?, ?, ?, ?)");
-        if (!$stmt) {
-            $db->close();
-            return ["estado" => "ERROR", "mensaje" => $conn->error];
+        try {
+            
+            $stmt = $conn->prepare("CALL delete_observacion(?)"); 
+            
+            if (!$stmt) {
+                throw new Exception("Error al preparar la consulta: " . $conn->error);
+            }
+            
+            $id = intval($aDatos["id_observacion"]);
+            $stmt->bind_param("i", $id);
+
+            $ok = $objDB->executePrepared($stmt);
+            $aResponse = [];
+            
+            if ($ok) {
+              
+                $aResponse["estado"] = "success";
+                $aResponse["mensaje"] = "Observación eliminada satisfactoriamente";
+            } else {
+                
+                $aResponse["estado"] = "Error";
+                $aResponse["mensaje"] = "Error de ejecución: " . $conn->error;
+            }
+
+            $stmt->close();
+        } catch (Exception $e) {
+            $aResponse = ["estado" => "Error", "mensaje" => $e->getMessage()];
         }
-
-        $stmt->bind_param("isisdsi",
-            $aDatos["id_observacion"],          // i
-            $aDatos["fecha"],                   // s
-            $aDatos["cantidad_ejemplares"],     // i
-            $aDatos["comportamiento_observado"],// s
-            $aDatos["inversion"],               // d
-            $aDatos["nombre_comun"],            // s
-            $aDatos["cod_postal"]               // i
-        );
-
-
-        $ok = $objDB->executePrepared($stmt);
-        $aResponse = [];
-        if ($ok) {
-            $aResponse["estado"] = "success";
-            $aResponse["mensaje"] = "La especie de araña se actualizo satisfactoriamente";
-        } else {
-            $aResponse["estado"] = "Error";
-            $aResponse["mensaje"] = $conn->error;
-        }
-
-        $stmt->close();
-        $objDB->close();
-        return $aResponse;
-    }
-
-    public function delete($xDatos) {
-        $aDatos = json_decode($xDatos, true);
-
-        if ($aDatos === null || !isset($aDatos["id_especie"])) {
-            return ["estado" => "Error", "mensaje" => "JSON invalido o id_especie faltante."];
-        }
-
-        $objDB = new DataBase();
-        if (!$objDB->getEstadoConexion()) {
-            return ["estado" => "Error", "mensaje" => $objDB->getMensajeError()];
-        }
-
-        $conn = $db->getConnection();
-
-        $stmt = $conn->prepare("DELETE FROM especie_arana WHERE id_especie = ?");
-        $id = intval($aDatos["id_especie"]);
-        $stmt->bind_param("i", $id);
-
-        $ok = $objDB->executePrepared($stmt);
-        $aResponse = [];
-        if ($ok) {
-            $aResponse["estado"] = "success";
-            $aResponse["mensaje"] = "La especie de araña se elimino satisfactoriamente";
-        } else {
-            $aResponse["estado"] = "Error";
-            $aResponse["mensaje"] = $conn->error;
-        }
-
-        $stmt->close();
+        
         $objDB->close();
         return $aResponse;
     }

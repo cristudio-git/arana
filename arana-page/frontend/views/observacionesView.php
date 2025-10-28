@@ -1,4 +1,4 @@
-<?php include '../backend/includes/header.inc.php'; ?>
+<?php include '../../backend/includes/header.inc.php'; ?>
 
 <div class="container mt-4">
     <h2 class="mb-4">Gestión de Observaciones</h2>
@@ -20,7 +20,6 @@
     </table>
 </div>
 
-<!-- MODAL AGREGAR -->
 <div class="modal fade" id="modalAgregar" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -71,7 +70,6 @@
     </div>
 </div>
 
-<!-- MODAL EDITAR -->
 <div class="modal fade" id="modalEditar" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -82,31 +80,35 @@
                     <div class="mb-3">
                         <label>Fecha</label>
                         <input type="date" id="edit_fecha" class="form-control">
+                        <div class="invalid-feedback">Ingrese una fecha válida</div>
                     </div>
                     <div class="mb-3">
                         <label>Cantidad de Ejemplares</label>
                         <input type="number" id="edit_cantidad_ejemplares" class="form-control">
+                        <div class="invalid-feedback">Ingrese un número válido</div>
                     </div>
                     <div class="mb-3">
                         <label>Comportamiento Observado</label>
                         <textarea id="edit_comportamiento_observado" class="form-control"></textarea>
+                        <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
                     <div class="mb-3">
                         <label>Inversión</label>
                         <input type="number" step="0.01" id="edit_inversion" class="form-control">
+                        <div class="invalid-feedback">Ingrese un valor numérico</div>
                     </div>
                     <div class="mb-3">
                         <label>Especie</label>
                         <select id="edit_selectEspecie" class="form-select">
                             <option value="">Cargando especies...</option>
                         </select>
-                    </div>
+                        <div class="invalid-feedback">Seleccione una especie</div> </div>
                     <div class="mb-3">
                         <label>Centro</label>
                         <select id="edit_selectCentro" class="form-select">
                             <option value="">Cargando centros...</option>
                         </select>
-                    </div>
+                        <div class="invalid-feedback">Seleccione un centro</div> </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -118,6 +120,6 @@
     </div>
 </div>
 
-<script type="module" src="js/observaciones.js"></script>
+<script type="module" src="../js/observaciones.js"></script>
 
-<?php include '../backend/includes/footer.inc.php'; ?>
+<?php include '../../backend/includes/footer.inc.php'; ?>

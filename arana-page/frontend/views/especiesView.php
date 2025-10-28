@@ -1,4 +1,4 @@
-<?php include '../backend/includes/header.inc.php'; ?>
+<?php include '../../backend/includes/header.inc.php'; ?>
 <div class="container mt-4">
   <h1 class="mb-4">Especies de Arañas</h1>
 
@@ -142,6 +142,9 @@
     </div>
 </div>
 
-<script type="module" src="js/especies.js"></script>
 
-<?php include '../backend/includes/footer.inc.php'; ?>
+
+<script type="module" src="../js/especies.js"></script>
+
+
+<?php include '../../backend/includes/footer.inc.php'; ?>
