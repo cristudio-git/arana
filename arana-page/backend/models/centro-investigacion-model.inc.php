@@ -2,143 +2,180 @@
 
 class CentroInvestigacionModel {
 
-    /**
-     * get
-     * Permite obtener todos los registros
-     * de la tabla centro_investigacion
-     * @param string $xfilter Parámetro opcional 
-     * que define el filtro a aplicar
-     * @return array
-     */
 
     public function get($xfilter = "") {
-        $aFilter = json_decode($xfilter,true);
+        $aFilter = json_decode($xfilter, true);
         $aResponse = [];
-        $sql = "SELECT * FROM centro_investigacion AS ci";
 
-        if (strcmp($aFilter["filter"], "") != 0)
-            $sql .= " WHERE " . $aFilter["filter"] . " ";
+        // Consulta con JOIN para traer nombre de ciudad y director
+        $sql = "SELECT 
+                    ci.id_centro,
+                    ci.nombre_centro,
+                    ci.direccion,
+                    ci.telefono,
+                    c.nombre_ciudad,
+                    d.nombre_director
+                FROM 
+                    centro_investigacion AS ci
+                LEFT JOIN ciudad AS c ON ci.id_ciudad = c.id_ciudad
+                LEFT JOIN director AS d ON ci.id_director = d.id_director ";
 
-        $sql .= " ORDER BY id_centro ASC";
+        
+        if (isset($aFilter['filter']) && trim($aFilter['filter']) !== '') {
+            $sql .= " WHERE " . $aFilter['filter'] . " ";
+        }
+
+        $sql .= " ORDER BY ci.id_centro ASC ";
 
         $objDB = new DataBase();
 
         if (!$objDB->getEstadoConexion()) {
-            $aResponse["estado"] = "ERROR";
-            $aResponse["mensaje"] = $objDB->getMensajeError();
-            return $aResponse;
+            return [
+                "estado" => "ERROR",
+                "mensaje" => $objDB->getMensajeError(),
+                "datos"   => []
+            ];
         }
 
         $aResponse["estado"] = "success";
-        $aResponse["mensaje"] = "Centro de investigación encontrado con exito";
-        $aResponse["datos"] = $objDB->getQuery($sql);
+        $aResponse["mensaje"] = "";
+        $aResponse["datos"]   = $objDB->getQuery($sql);
 
         $objDB->close();
         return $aResponse;
-
     }
 
-    
-    /**
-     * insert
-     * Permite insertar un registro en la tabla centro_investigacion
-     * @param string $aDatos Array asociativo con los datos a insertar
-     * @return array Resultado de la ejecución
-     */
 
-    public function insert($xdatos) {
-        $aDatos = json_decode($xdatos, true);
+    public function insert($xDatos) {
+        $aDatos = json_decode($xDatos, true);
         $aResponse = [];
-
-        if ($aDatos === null) {
-            return [
-                "estado" => "Error",
-                "mensaje" => "JSON invalido. Revisa el cuerpo de la peticion."
-            ];
-        }           
 
         $sql = "CALL insert_centro_investigacion(
-                '" . $aDatos["nombre_centro"] . "',
-                '" . $aDatos["cod_postal"] . "',
-                '" . $aDatos["direccion"] . "',
-                '" . $aDatos["telefono"] . "',
-                '" . $aDatos["dni_director"] . "'
+                    '" . addslashes($aDatos["nombre_centro"]) . "',
+                    '" . addslashes($aDatos["nombre_ciudad"] ?? '') . "',
+                    '" . addslashes($aDatos["direccion"]) . "',
+                    '" . addslashes($aDatos["telefono"]) . "',
+                    '" . addslashes($aDatos["nombre_director"]) . "'
                 )";
-        // var_dump($sql);
+
         $objDB = new DataBase();
 
-        if (!$objDB->getEstadoConexion() ) {
-            $aResponse["estado"] = "Error";
-            $aResponse["mensaje"] = $objDB->getMensajeError();
-            return $aResponse;
+        if (!$objDB->getEstadoConexion()) {
+            return [
+                "estado"  => "ERROR",
+                "mensaje" => $objDB->getMensajeError(),
+                "datos"   => []
+            ];
         }
 
-        $aResponse["estado"] = "success";
-        $aResponse["mensaje"] = "El centro de investigación se dio de alta satisfactoriamente";
-        $aResponse["datos"] = $objDB->execute($sql);
-        
+        $result = $objDB->execute($sql);
+
+        $aResponse["estado"]  = "success";
+        $aResponse["mensaje"] = "El centro de investigación se dió de alta satisfactoriamente";
+        $aResponse["datos"]   = $result;
+
         $objDB->close();
         return $aResponse;
     }
 
-    /**
-     * update
-     * Permite actualizar un registro de la tabla especie_arana.
-     * @param array $aDatos
-     * @return array
-     */
-    public function update($xdatos) {
-        $aDatos = json_decode($xdatos, true);
+   
+    public function update($xDatos) {
+        $aDatos = json_decode($xDatos, true);
         $aResponse = [];
-        $sql = "UPDATE
-                    centro_investigacion
-                SET
-                    nombre_centro = '" . $aDatos["nombre_centro"] . "',
-                    id_ciudad = '" . $aDatos["id_ciudad"] . "',
-                    direccion = '" . $aDatos["direccion"] . "',
-                    telefono = '" .$aDatos["telefono"] ."',
-                    id_director = '" .$aDatos["id_director"] ."'
-                WHERE
-                    centro_investigacion.id_centro = ". $aDatos["id_centro"];
-        
+
+        if (!isset($aDatos["id_centro"])) {
+            return [
+                "estado"  => "ERROR",
+                "mensaje" => "Falta el ID del centro para actualizar",
+                "datos"   => []
+            ];
+        }
+
+
+        $id_centro       = intval($aDatos["id_centro"]);
+        $nombre_centro   = addslashes(trim($aDatos["nombre_centro"] ?? ""));
+        $nombre_ciudad   = addslashes(trim($aDatos["nombre_ciudad"] ?? ""));
+        $direccion       = addslashes(trim($aDatos["direccion"] ?? ""));
+        $telefono        = addslashes(trim($aDatos["telefono"] ?? ""));
+        $nombre_director = addslashes(trim($aDatos["nombre_director"] ?? ""));
+
+        $sql = "CALL update_centro_investigacion(
+                    $id_centro,
+                    '$nombre_centro',
+                    '$nombre_ciudad',
+                    '$direccion',
+                    '$telefono',
+                    '$nombre_director'
+                )";
+
+        $objDB = new DataBase();
+
+        if (!$objDB->getEstadoConexion()) {
+            return [
+                "estado"  => "ERROR",
+                "mensaje" => $objDB->getMensajeError(),
+                "datos"   => []
+            ];
+        }
+
+        $result = $objDB->execute($sql);
+
+        if ($result === false) {
+            $aResponse["estado"]  = "ERROR";
+            $aResponse["mensaje"] = "No se pudo actualizar el centro de investigación";
+        } else {
+            $aResponse["estado"]  = "success";
+            $aResponse["mensaje"] = "El centro de investigación se actualizó correctamente";
+            $aResponse["datos"]   = $result;
+        }
+
+        $objDB->close();
+        return $aResponse;
+    }
+
+
+    public function delete($xDatos) {
+        $aDatos = json_decode($xDatos, true);
+        $aResponse = [];
+
       
-        $objDB = new DataBase();
-
-        if (!$objDB->getEstadoConexion() ) {
-            $aResponse["estado"] = "Error";
-            $aResponse["mensaje"] = $objDB->getMensajeError();
-            return $aResponse;
+        if (!isset($aDatos["id_centro"]) || !is_numeric($aDatos["id_centro"])) {
+            return [
+                "estado"  => "ERROR",
+                "mensaje" => "ID de centro inválido o no especificado.",
+                "datos"   => []
+            ];
         }
 
-        $aResponse["estado"] = "success";
-        $aResponse["mensaje"] = "El centro de investigación se actualizo satisfactoriamente";
-        $aResponse["datos"] = $objDB->execute($sql);
-        $objDB->close();
-        return $aResponse;
+        $idCentro = intval($aDatos["id_centro"]);
 
-    }
-
-    public function delete($xdatos) {
-        $aDatos = json_decode($xdatos, true);
-        $aResponse = [];
-
-        $sql = "CALL delete_centro_investigacion('" . $aDatos['nombre_centro'] . "')";
+        $sql = "DELETE FROM centro_investigacion WHERE id_centro = $idCentro";
 
         $objDB = new DataBase();
 
-        if (!$objDB->getEstadoConexion() ) {
-            $aResponse["estado"] = "Error";
-            $aResponse["mensaje"] = $objDB->getMensajeError();
-            return $aResponse;
+
+        if (!$objDB->getEstadoConexion()) {
+            return [
+                "estado"  => "ERROR",
+                "mensaje" => $objDB->getMensajeError(),
+                "datos"   => []
+            ];
         }
 
-        $aResponse["estado"] = "success";
-        $aResponse["mensaje"] = "El centro de investigación se elimino satisfactoriamente";
-        $aResponse["datos"] = $objDB->execute($sql);
+        $result = $objDB->execute($sql);
+
+        if ($result) {
+            $aResponse["estado"]  = "success";
+            $aResponse["mensaje"] = "El centro de investigación se eliminó satisfactoriamente.";
+        } else {
+            $aResponse["estado"]  = "ERROR";
+            $aResponse["mensaje"] = "No se pudo eliminar el registro o no existe el ID especificado.";
+        }
+
+        $aResponse["datos"] = $result;
         $objDB->close();
         return $aResponse;
     }
-
 }
 
 ?>

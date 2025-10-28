@@ -2,7 +2,16 @@
 
 <div class="container mt-4">
     <h2 class="mb-4">Gestión de Observaciones</h2>
-    <button id="btnAgregar" class="btn btn-primary mb-3">Nueva Observación</button>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <button id="btnAgregar" class="btn btn-primary mb-3">Nueva Observación</button>
+        <input
+            type="text"
+            id="inputFiltro"
+            class="form-control w-25"
+            placeholder="Buscar por comportamiento..."
+        >
+    </div>
+    
 
     <table id="tabla-observaciones" class="table table-bordered table-striped">
         <thead>

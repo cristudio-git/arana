@@ -25,5 +25,5 @@ if (!in_array($metodo_a_ejecutar, $allowed)) {
 $datos = file_get_contents("php://input");
 $objModel = new AranaModel();
 $response = $objModel->{$metodo_a_ejecutar}($datos);
-echo json_encode($response, JSON_UNESCAPED_UNICODE);
+echo json_encode($response);
 ?>

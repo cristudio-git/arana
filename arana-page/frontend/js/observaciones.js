@@ -130,6 +130,23 @@ async function cargarObservaciones() {
   }
 }
 
+async function filtrarObservaciones(valor) {
+  const tbody = document.querySelector("#tabla-observaciones tbody");
+  const url = getUrlApi("observaciones") + "/get"; 
+
+  try {
+    
+    const data = valor.trim() === ""
+      ? await api.get(url)
+      : await api.post(url, { filter: `comportamiento_observado LIKE '${valor}%'` });
+
+    renderObservaciones(tbody, data);
+  } catch (err) {
+    console.error("Error filtrando observaciones:", err);
+    tbody.innerHTML = `<tr><td colspan="7">Error al filtrar observaciones</td></tr>`;
+  }
+}
+
 /* === Insertar Observación  === */
 async function insertarObservacion() {
   const modal = document.getElementById("modalAgregar");
@@ -285,7 +302,20 @@ async function eliminarObservacion() {
 
 /* === Event Listeners === */
 document.addEventListener("DOMContentLoaded", () => {
+  
   cargarDatosIniciales();
+
+  const inputFiltro = document.getElementById("inputFiltro");
+
+  // Cargar todos los registros inicialmente
+  cargarObservaciones();
+
+  // Filtrar
+  inputFiltro.addEventListener("keyup", async (e) => {
+    const valor = e.target.value.trim();
+    await filtrarObservaciones(valor);
+  });
+
 
   document.getElementById("btnAgregar").addEventListener("click", () => {
     const modalAgregar = new bootstrap.Modal(document.getElementById("modalAgregar"));

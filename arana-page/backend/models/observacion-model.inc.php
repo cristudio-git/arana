@@ -18,14 +18,18 @@ class ObservacionModel {
 
         $sqlBase = "
             SELECT 
-                o.id_observacion, o.fecha, o.cantidad_ejemplares, o.comportamiento_observado, o.inversion,
+                o.id_observacion, 
+                DATE_FORMAT(o.fecha, '%d/%m/%Y') AS fecha, 
+                o.cantidad_ejemplares, 
+                o.comportamiento_observado, 
+                o.inversion,
                 ea.nombre_comun, 
-                ci.nombre_centro,
-                c.cod_postal
+                ci.nombre_centro
+
             FROM observacion o
             JOIN especie_arana ea ON o.id_especie = ea.id_especie
             JOIN centro_investigacion ci ON o.id_centro = ci.id_centro
-            JOIN ciudad c ON ci.id_ciudad = c.id_ciudad
+            
         ";
 
         $sql = $sqlBase;
@@ -45,7 +49,7 @@ class ObservacionModel {
         
         //Obtener TODAS las observaciones (para la tabla principal)
         else {
-            $sql .= " ORDER BY o.fecha DESC";
+            $sql .= " ORDER BY o.id_observacion ASC";
             $aResponse["datos"] = $objDB->getQuery($sql);
         }
 

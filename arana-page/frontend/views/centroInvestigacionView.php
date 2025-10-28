@@ -1,123 +1,127 @@
 <?php include '../../backend/includes/header.inc.php'; ?>
 
 <div class="container mt-4">
-    <h2 class="mb-4">Centro de investigación</h2>
-    <button id="btnAgregar" class="btn btn-primary mb-3">Nuevo Centro</button>
+    <h2 class="mb-4">Gestión de Centros de Investigación</h2>
+     <div class="d-flex justify-content-between align-items-center mb-3">
+        <button id="btnAgregar" class="btn btn-primary">Nuevo Centro</button>
+        <input
+            type="text"
+            id="inputFiltro"
+            class="form-control w-25"
+            placeholder="Buscar por nombre del centro..."
+        >
+    </div>
 
-    <table id="tabla-observaciones" class="table table-bordered table-striped">
+    <table id="tabla-centros" class="table table-bordered table-striped">
         <thead>
             <tr>
                 <th>ID</th>
-                <th>Fecha</th>
-                <th>Cantidad</th>
-                <th>Comportamiento</th>
-                <th>Inversión</th>
-                <th>Especie</th>
-                <th>Centro</th>
+                <th>Nombre</th>
+                <th>Ciudad</th>
+                <th>Dirección</th>
+                <th>Teléfono</th>
+                <th>Director</th>
             </tr>
         </thead>
-        <tbody><tr><td colspan="8">Cargando...</td></tr></tbody>
+        <tbody><tr><td colspan="6">Cargando...</td></tr></tbody>
     </table>
 </div>
 
-<!-- MODAL AGREGAR -->
+<!-- Modal Agregar -->
 <div class="modal fade" id="modalAgregar" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header"><h5>Nueva Observación</h5></div>
+            <div class="modal-header"><h5>Nuevo Centro de Investigación</h5></div>
             <div class="modal-body">
                 <form>
                     <div class="mb-3">
-                        <label>Fecha</label>
-                        <input type="date" id="fecha" class="form-control">
-                        <div class="invalid-feedback">Ingrese una fecha válida</div>
+                        <label for="nombre_centro" class="form-label">Nombre del Centro</label>
+                        <input type="text" class="form-control" id="nombre_centro" name="nombre_centro" required>
+                        <div class="invalid-feedback d-none"></div>
                     </div>
+
                     <div class="mb-3">
-                        <label>Cantidad de Ejemplares</label>
-                        <input type="number" id="cantidad_ejemplares" class="form-control">
-                        <div class="invalid-feedback">Ingrese un número válido</div>
+                        <label for="selectCiudad" class="form-label">Ciudad</label>
+                        <select id="selectCiudad" name="selectCiudad" class="form-select" required></select>
+                        <div class="invalid-feedback d-none"></div>
                     </div>
+
                     <div class="mb-3">
-                        <label>Comportamiento Observado</label>
-                        <textarea id="comportamiento_observado" class="form-control"></textarea>
-                        <div class="invalid-feedback">Campo obligatorio</div>
+                        <label for="direccion" class="form-label">Dirección</label>
+                        <input type="text" class="form-control" id="direccion" name="direccion" required>
+                        <div class="invalid-feedback d-none"></div>
                     </div>
+
                     <div class="mb-3">
-                        <label>Inversión</label>
-                        <input type="number" step="0.01" id="inversion" class="form-control">
-                        <div class="invalid-feedback">Ingrese un valor numérico</div>
+                        <label for="telefono" class="form-label">Teléfono</label>
+                        <input type="text" class="form-control" id="telefono" name="telefono" required>
+                        <div class="invalid-feedback d-none"></div>
                     </div>
+
                     <div class="mb-3">
-                        <label>Especie</label>
-                        <select id="selectEspecie" class="form-select">
-                            <option value="">Cargando especies...</option>
-                        </select>
-                        <div class="invalid-feedback">Seleccione una especie</div>
-                    </div>
-                    <div class="mb-3">
-                        <label>Centro</label>
-                        <select id="selectCentro" class="form-select">
-                            <option value="">Cargando centros...</option>
-                        </select>
-                        <div class="invalid-feedback">Seleccione un centro</div>
+                        <label for="selectDirector" class="form-label">Director</label>
+                        <select id="selectDirector" name="selectDirector" class="form-select" required></select>
+                        <div class="invalid-feedback d-none"></div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button id="btnGuardar" class="btn btn-success">Guardar</button>
                 <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button id="btnGuardar" class="btn btn-success">Guardar</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- MODAL EDITAR -->
+<!-- Modal Editar -->
 <div class="modal fade" id="modalEditar" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header"><h5>Editar Observación</h5></div>
+            <div class="modal-header"><h5>Editar Centro de Investigación</h5></div>
             <div class="modal-body">
                 <form>
-                    <input type="hidden" id="edit_id_observacion">
+                    <input type="hidden" id="edit_id_centro" name="edit_id_centro">
+
                     <div class="mb-3">
-                        <label>Fecha</label>
-                        <input type="date" id="edit_fecha" class="form-control">
+                        <label for="edit_nombre_centro" class="form-label">Nombre del Centro</label>
+                        <input type="text" class="form-control" id="edit_nombre_centro" name="edit_nombre_centro" required>
+                        <div class="invalid-feedback d-none"></div>
                     </div>
+
                     <div class="mb-3">
-                        <label>Cantidad de Ejemplares</label>
-                        <input type="number" id="edit_cantidad_ejemplares" class="form-control">
+                        <label for="edit_selectCiudad" class="form-label">Ciudad</label>
+                        <select id="edit_selectCiudad" name="edit_selectCiudad" class="form-select" required></select>
+                        <div class="invalid-feedback d-none"></div>
                     </div>
+
                     <div class="mb-3">
-                        <label>Comportamiento Observado</label>
-                        <textarea id="edit_comportamiento_observado" class="form-control"></textarea>
+                        <label for="edit_direccion" class="form-label">Dirección</label>
+                        <input type="text" class="form-control" id="edit_direccion" name="edit_direccion" required>
+                        <div class="invalid-feedback d-none"></div>
                     </div>
+
                     <div class="mb-3">
-                        <label>Inversión</label>
-                        <input type="number" step="0.01" id="edit_inversion" class="form-control">
+                        <label for="edit_telefono" class="form-label">Teléfono</label>
+                        <input type="text" class="form-control" id="edit_telefono" name="edit_telefono" required>
+                        <div class="invalid-feedback d-none"></div>
                     </div>
+
                     <div class="mb-3">
-                        <label>Especie</label>
-                        <select id="edit_selectEspecie" class="form-select">
-                            <option value="">Cargando especies...</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label>Centro</label>
-                        <select id="edit_selectCentro" class="form-select">
-                            <option value="">Cargando centros...</option>
-                        </select>
+                        <label for="edit_selectDirector" class="form-label">Director</label>
+                        <select id="edit_selectDirector" name="edit_selectDirector" class="form-select" required></select>
+                        <div class="invalid-feedback d-none"></div>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button id="btnActualizar" class="btn btn-primary">Actualizar</button>
+            <div class="modal-footer">  
                 <button id="btnEliminar" class="btn btn-danger">Eliminar</button>
+                <button id="btnActualizar" class="btn btn-primary">Actualizar</button>
                 <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
             </div>
         </div>
     </div>
 </div>
 
-<script type="module" src="js/centro-investigacion.js"></script>
+<script type="module" src="../js/centro-investigacion.js"></script>
 
 <?php include '../../backend/includes/footer.inc.php'; ?>

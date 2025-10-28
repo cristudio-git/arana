@@ -33,7 +33,7 @@ if (!in_array($metodo_a_ejecutar, $allowed)) {
 
 $datos = file_get_contents("php://input");
 
-$objModel = new CentroInvestigacionModel();
+$objModel = new CiudadModel();
 
 $response = $objModel->{$metodo_a_ejecutar}($datos);
 echo json_encode($response);

@@ -3,7 +3,9 @@ export function getUrlApi(nombre) {
     const urls = {
         "especies": "especiesB.php",
         "centros-investigacion": "centrosB.php",
-        "observaciones": "observacionesB.php"
+        "observaciones": "observacionesB.php",
+        "directores" : "directoresB.php",
+        "ciudades" : "ciudadesB.php"
     };
 
     if (!urls[nombre]) {

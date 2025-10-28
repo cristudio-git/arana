@@ -1,5 +1,3 @@
-
-
 import { getUrlApi } from "./urls.js";
 import APIs from "./api.js";
 import { limpiarEstilosValidacion, validarCampos } from "./helpers/forms.js";
@@ -20,12 +18,13 @@ function validarEspecie(form) {
 
 /* === Escapar HTML === */
 function escapeHtml(str = "") {
+  if (str === null || str === undefined) return "—";
   return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 /* === Renderizar tabla === */
@@ -69,6 +68,24 @@ async function cargarEspecies(modalEditar, formEditar) {
   } catch (err) {
     console.error("Error cargando especies:", err);
     if (tbody) tbody.innerHTML = `<tr><td colspan="6">Error al cargar datos</td></tr>`;
+  }
+}
+
+/* === Filtro dinámico === */
+async function filtrarEspecies(valor, modalEditar, formEditar) {
+  const tbody = document.querySelector("#tabla-especies tbody");
+  const url = getUrlApi("especies") + "/get";
+
+  try {
+    const data =
+      valor.trim() === ""
+        ? await api.get(url)
+        : await api.post(url, { filter: `nombre_comun LIKE '${valor}%'` });
+
+    renderEspecies(tbody, data, modalEditar, formEditar);
+  } catch (err) {
+    console.error("Error filtrando especies:", err);
+    tbody.innerHTML = `<tr><td colspan="7">Error al filtrar especies</td></tr>`;
   }
 }
 
@@ -118,8 +135,86 @@ async function eliminarEspecie(id_especie) {
   return api.delete(url, { id_especie: parseInt(id_especie, 10) });
 }
 
+/* === Funciones de acción === */
+async function guardarNuevaEspecie(formAgregar, modalAgregar, modalEditar, formEditar) {
+  if (!validarEspecie(formAgregar)) return;
+
+  const peligrosidadSeleccionada =
+    formAgregar.querySelector('input[name="peligrosidad"]:checked')?.value || "";
+
+  const nuevaEspecie = {
+    nombre_cientifico: formAgregar.querySelector("#nombre_cientifico").value.trim(),
+    nombre_comun: formAgregar.querySelector("#nombre_comun").value.trim(),
+    familia: formAgregar.querySelector("#familia").value.trim(),
+    habitat: formAgregar.querySelector("#habitat").value.trim(),
+    peligrosidad: peligrosidadSeleccionada
+  };
+
+  try {
+    const resultado = await crearEspecie(nuevaEspecie);
+    if (resultado?.estado === "success") {
+      alertaExito("Éxito", resultado.mensaje);
+      modalAgregar.hide();
+      cargarEspecies(modalEditar, formEditar);
+    } else {
+      alertaError("Error", resultado?.mensaje || "No se pudo guardar la especie");
+    }
+  } catch {
+    alertaError("Error", "No se pudo conectar con el servidor");
+  }
+}
+
+async function actualizarEspecieExistente(formEditar, modalEditar, modalAgregar, formAgregar) {
+  if (!validarEspecie(formEditar)) return;
+
+  const peligrosidadSeleccionada =
+    formEditar.querySelector('input[name="peligrosidad"]:checked')?.value || "";
+
+  const especieActualizada = {
+    id_especie: formEditar.querySelector("#edit_id_especie").value,
+    nombre_cientifico: formEditar.querySelector("#edit_nombre_cientifico").value.trim(),
+    nombre_comun: formEditar.querySelector("#edit_nombre_comun").value.trim(),
+    familia: formEditar.querySelector("#edit_familia").value.trim(),
+    habitat: formEditar.querySelector("#edit_habitat").value.trim(),
+    peligrosidad: peligrosidadSeleccionada
+  };
+
+  try {
+    const resultado = await actualizarEspecie(especieActualizada);
+    if (resultado?.estado === "success") {
+      alertaExito("Actualizado", resultado.mensaje);
+      modalEditar.hide();
+      cargarEspecies(modalEditar, formEditar);
+    } else {
+      alertaError("Error", resultado?.mensaje || "No se pudo actualizar la especie");
+    }
+  } catch {
+    alertaError("Error", "Error al conectar con el servidor");
+  }
+}
+
+function eliminarEspecieSeleccionada(formEditar, modalEditar, formAgregar) {
+  const id_especie = formEditar.querySelector("#edit_id_especie").value;
+
+  alertaConfirmacion("¿Seguro que deseas eliminar esta especie?", async () => {
+    try {
+      const resultado = await eliminarEspecie(id_especie);
+      if (resultado?.estado === "success") {
+        alertaExito("Eliminado", resultado.mensaje);
+        modalEditar.hide();
+        cargarEspecies(modalEditar, formEditar);
+      } else {
+        alertaError("Error", resultado?.mensaje || "Hubo un problema al eliminar");
+      }
+    } catch {
+      alertaError("Error", "No se pudo conectar con el servidor");
+    }
+  });
+}
+
 /* === Lógica Principal === */
 document.addEventListener("DOMContentLoaded", () => {
+  const inputFiltro = document.getElementById("inputFiltro");
   const modalAgregarEl = document.getElementById("modalAgregar");
   const modalAgregar = new bootstrap.Modal(modalAgregarEl);
   const modalEditarEl = document.getElementById("modalEditar");
@@ -132,91 +227,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnActualizar = document.getElementById("btnActualizar");
   const btnEliminar = document.getElementById("btnEliminar");
 
-  /* Cargar tabla inicial */
+  // Cargar tabla
   cargarEspecies(modalEditar, formEditar);
 
-  /* === Agregar nueva especie === */
+  // Filtro
+  inputFiltro.addEventListener("keyup", (e) => filtrarEspecies(e.target.value, modalEditar, formEditar));
+
+  // Eventos principales
   btnAgregar.addEventListener("click", () => {
     formAgregar.reset();
     limpiarEstilosValidacion(formAgregar);
     modalAgregar.show();
   });
 
-  btnGuardar.addEventListener("click", async () => {
-    if (!validarEspecie(formAgregar)) return;
-
-    const peligrosidadSeleccionada =
-      formAgregar.querySelector('input[name="peligrosidad"]:checked')?.value || "";
-
-    const nuevaEspecie = {
-      nombre_cientifico: formAgregar.querySelector("#nombre_cientifico").value.trim(),
-      nombre_comun: formAgregar.querySelector("#nombre_comun").value.trim(),
-      familia: formAgregar.querySelector("#familia").value.trim(),
-      habitat: formAgregar.querySelector("#habitat").value.trim(),
-      peligrosidad: peligrosidadSeleccionada
-    };
-
-    try {
-      const resultado = await crearEspecie(nuevaEspecie);
-      if (resultado?.estado === "success") {
-        alertaExito("Éxito", resultado.mensaje);
-        modalAgregar.hide();
-        cargarEspecies(modalEditar, formEditar);
-      } else {
-        alertaError("Error", resultado?.mensaje || "No se pudo guardar la especie");
-      }
-    } catch (error) {
-      alertaError("Error", "No se pudo conectar con el servidor");
-    }
-  });
-
-  /* === Actualizar especie existente === */
-  btnActualizar.addEventListener("click", async () => {
-    if (!validarEspecie(formEditar)) return;
-
-    const peligrosidadSeleccionada =
-      formEditar.querySelector('input[name="peligrosidad"]:checked')?.value || "";
-
-    const especieActualizada = {
-      id_especie: formEditar.querySelector("#edit_id_especie").value,
-      nombre_cientifico: formEditar.querySelector("#edit_nombre_cientifico").value.trim(),
-      nombre_comun: formEditar.querySelector("#edit_nombre_comun").value.trim(),
-      familia: formEditar.querySelector("#edit_familia").value.trim(),
-      habitat: formEditar.querySelector("#edit_habitat").value.trim(),
-      peligrosidad: peligrosidadSeleccionada
-    };
-
-    try {
-      const resultado = await actualizarEspecie(especieActualizada);
-      if (resultado?.estado === "success") {
-        alertaExito("Actualizado", resultado.mensaje);
-        modalEditar.hide();
-        cargarEspecies(modalEditar, formEditar);
-      } else {
-        alertaError("Error", resultado?.mensaje || "No se pudo actualizar la especie");
-      }
-    } catch (error) {
-      alertaError("Error", "Error al conectar con el servidor");
-    }
-  });
-
-  /* === Eliminar especie === */
-  btnEliminar.addEventListener("click", () => {
-    const id_especie = formEditar.querySelector("#edit_id_especie").value;
-
-    alertaConfirmacion("¿Seguro que deseas eliminar esta especie?", async () => {
-      try {
-        const resultado = await eliminarEspecie(id_especie);
-        if (resultado?.estado === "success") {
-          alertaExito("Eliminado", resultado.mensaje);
-          modalEditar.hide();
-          cargarEspecies(modalEditar, formEditar);
-        } else {
-          alertaError("Error", resultado?.mensaje || "Hubo un problema al eliminar");
-        }
-      } catch (error) {
-        alertaError("Error", "No se pudo conectar con el servidor");
-      }
-    });
-  });
+  btnGuardar.addEventListener("click", () => guardarNuevaEspecie(formAgregar, modalAgregar, modalEditar, formEditar));
+  btnActualizar.addEventListener("click", () => actualizarEspecieExistente(formEditar, modalEditar, modalAgregar, formAgregar));
+  btnEliminar.addEventListener("click", () => eliminarEspecieSeleccionada(formEditar, modalEditar, formAgregar));
 });

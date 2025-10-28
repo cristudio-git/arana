@@ -9,4 +9,6 @@ include "includes/database.inc.php";
 include "models/centro-investigacion-model.inc.php";
 include "models/observacion-model.inc.php";
 include "models/arana-model.inc.php";
+include "models/director-model.inc.php";
+include "models/ciudad-model.inc.php";
 ?>
